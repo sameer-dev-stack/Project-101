@@ -1,0 +1,1450 @@
+# Examples - Advanced Ridesharing App Patterns (Based on Android Repo)
+
+## examples/websocket_simulation.js
+```javascript
+// WebSocket Communication Pattern (matching Android repo structure)
+class RideWebSocket {
+  constructor(url) {
+    this.url = url;
+    this.socket = null;
+    this.listeners = {};
+    this.isConnected = false;
+  }
+
+  connect() {
+    return new Promise((resolve, reject) => {
+      this.socket = new WebSocket(this.url);
+      
+      this.socket.onopen = () => {
+        this.isConnected = true;
+        this.onConnect();
+        resolve();
+      };
+
+      this.socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        this.onMessage(data);
+      };
+
+      this.socket.onclose = () => {
+        this.isConnected = false;
+        this.onDisconnect();
+      };
+
+      this.socket.onerror = (error) => {
+        this.onError(error.toString());
+        reject(error);
+      };
+    });
+  }
+
+  sendMessage(data) {
+    if (this.isConnected && this.socket) {
+      this.socket.send(JSON.stringify(data));
+    }
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.close();
+    }
+  }
+
+  // Event handlers
+  onConnect() {
+    console.log('Connected to ride service');
+    if (this.listeners.onConnect) this.listeners.onConnect();
+  }
+
+  onMessage(data) {
+    console.log('Received:', data);
+    
+    switch(data.type) {
+      case 'nearByCabs':
+        this.handleNearByCabs(data.locations);
+        break;
+      case 'cabBooked':
+        this.handleCabBooked();
+        break;
+      case 'pickUpPath':
+        this.handlePickUpPath(data.path);
+        break;
+      case 'location':
+        this.handleDriverLocation(data.lat, data.lng);
+        break;
+      case 'cabIsArriving':
+        this.handleCabArriving();
+        break;
+      case 'cabArrived':
+        this.handleCabArrived();
+        break;
+      case 'tripStart':
+        this.handleTripStart();
+        break;
+      case 'tripPath':
+        this.handleTripPath(data.path);
+        break;
+      case 'tripEnd':
+        this.handleTripEnd();
+        break;
+      default:
+        console.log('Unknown message type:', data.type);
+    }
+  }
+
+  onDisconnect() {
+    console.log('Disconnected from ride service');
+    if (this.listeners.onDisconnect) this.listeners.onDisconnect();
+  }
+
+  onError(error) {
+    console.error('WebSocket error:', error);
+    if (this.listeners.onError) this.listeners.onError(error);
+  }
+
+  // Message handlers
+  handleNearByCabs(locations) {
+    if (this.listeners.onNearByCabs) {
+      this.listeners.onNearByCabs(locations);
+    }
+  }
+
+  handleCabBooked() {
+    if (this.listeners.onCabBooked) {
+      this.listeners.onCabBooked();
+    }
+  }
+
+  handlePickUpPath(path) {
+    if (this.listeners.onPickUpPath) {
+      this.listeners.onPickUpPath(path);
+    }
+  }
+
+  handleDriverLocation(lat, lng) {
+    if (this.listeners.onDriverLocation) {
+      this.listeners.onDriverLocation({ lat, lng });
+    }
+  }
+
+  handleCabArriving() {
+    if (this.listeners.onCabArriving) {
+      this.listeners.onCabArriving();
+    }
+  }
+
+  handleCabArrived() {
+    if (this.listeners.onCabArrived) {
+      this.listeners.onCabArrived();
+    }
+  }
+
+  handleTripStart() {
+    if (this.listeners.onTripStart) {
+      this.listeners.onTripStart();
+    }
+  }
+
+  handleTripPath(path) {
+    if (this.listeners.onTripPath) {
+      this.listeners.onTripPath(path);
+    }
+  }
+
+  handleTripEnd() {
+    if (this.listeners.onTripEnd) {
+      this.listeners.onTripEnd();
+    }
+  }
+
+  // API Methods (matching Android repo)
+  requestNearByCabs(lat, lng) {
+    this.sendMessage({
+      type: "nearByCabs",
+      lat: lat,
+      lng: lng
+    });
+  }
+
+  requestCab(pickUpLat, pickUpLng, dropLat, dropLng) {
+    this.sendMessage({
+      type: "requestCab",
+      pickUpLat: pickUpLat,
+      pickUpLng: pickUpLng,
+      dropLat: dropLat,
+      dropLng: dropLng
+    });
+  }
+
+  setListeners(listeners) {
+    this.listeners = listeners;
+  }
+}
+
+// Usage Example
+const rideWS = new RideWebSocket('ws://localhost:8080/ride');
+rideWS.setListeners({
+  onConnect: () => console.log('Connected!'),
+  onNearByCabs: (cabs) => updateCabsOnMap(cabs),
+  onCabBooked: () => showBookingConfirmation(),
+  onDriverLocation: (location) => updateDriverMarker(location)
+});
+
+module.exports = RideWebSocket;
+```
+
+## examples/map_animations.js
+```javascript
+// Google Maps Car Animation Pattern (Uber-like smooth movement)
+class MapAnimationService {
+  constructor(map) {
+    this.map = map;
+    this.markers = new Map();
+    this.polylines = new Map();
+    this.animationFrames = new Map();
+  }
+
+  // Create animated car marker
+  createCarMarker(id, position, rotation = 0) {
+    const marker = new google.maps.Marker({
+      position: position,
+      map: this.map,
+      icon: {
+        url: '/assets/car-icon.png',
+        scaledSize: new google.maps.Size(40, 40),
+        anchor: new google.maps.Point(20, 20),
+        rotation: rotation
+      },
+      optimized: false // Important for smooth animation
+    });
+
+    this.markers.set(id, marker);
+    return marker;
+  }
+
+  // Animate car movement from current position to new position
+  animateCarMovement(markerId, newPosition, duration = 2000) {
+    const marker = this.markers.get(markerId);
+    if (!marker) return;
+
+    const startPosition = marker.getPosition();
+    const startLat = startPosition.lat();
+    const startLng = startPosition.lng();
+    const endLat = newPosition.lat;
+    const endLng = newPosition.lng;
+
+    // Calculate rotation angle
+    const rotation = this.calculateBearing(startPosition, newPosition);
+    
+    let startTime = null;
+
+    const animate = (currentTime) => {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function for smooth animation
+      const easeProgress = this.easeInOutCubic(progress);
+
+      // Interpolate position
+      const currentLat = startLat + (endLat - startLat) * easeProgress;
+      const currentLng = startLng + (endLng - startLng) * easeProgress;
+
+      // Update marker position and rotation
+      marker.setPosition({ lat: currentLat, lng: currentLng });
+      marker.setIcon({
+        ...marker.getIcon(),
+        rotation: rotation
+      });
+
+      if (progress < 1) {
+        const frameId = requestAnimationFrame(animate);
+        this.animationFrames.set(markerId, frameId);
+      } else {
+        this.animationFrames.delete(markerId);
+      }
+    };
+
+    // Cancel any existing animation
+    if (this.animationFrames.has(markerId)) {
+      cancelAnimationFrame(this.animationFrames.get(markerId));
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // Calculate bearing between two points for car rotation
+  calculateBearing(start, end) {
+    const lat1 = this.toRadians(start.lat());
+    const lat2 = this.toRadians(end.lat);
+    const deltaLng = this.toRadians(end.lng - start.lng());
+
+    const x = Math.sin(deltaLng) * Math.cos(lat2);
+    const y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+
+    const bearing = this.toDegrees(Math.atan2(x, y));
+    return (bearing + 360) % 360;
+  }
+
+  // Animate path drawing (polyline animation)
+  animatePathDrawing(pathId, path, color = '#4285F4', duration = 3000) {
+    const polyline = new google.maps.Polyline({
+      path: [],
+      geodesic: true,
+      strokeColor: color,
+      strokeOpacity: 1.0,
+      strokeWeight: 4,
+      map: this.map
+    });
+
+    this.polylines.set(pathId, polyline);
+
+    let currentIndex = 0;
+    const totalPoints = path.length;
+    const timePerPoint = duration / totalPoints;
+
+    const drawNextPoint = () => {
+      if (currentIndex < totalPoints) {
+        const currentPath = polyline.getPath();
+        currentPath.push(new google.maps.LatLng(path[currentIndex].lat, path[currentIndex].lng));
+        
+        currentIndex++;
+        setTimeout(drawNextPoint, timePerPoint);
+      }
+    };
+
+    drawNextPoint();
+  }
+
+  // Update multiple nearby cabs with animation
+  updateNearByCabs(cabs) {
+    cabs.forEach((cab, index) => {
+      const cabId = `cab_${index}`;
+      
+      if (this.markers.has(cabId)) {
+        // Animate existing cab to new position
+        this.animateCarMovement(cabId, cab);
+      } else {
+        // Create new cab marker
+        this.createCarMarker(cabId, cab);
+      }
+    });
+  }
+
+  // Utility functions
+  easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+  }
+
+  toRadians(degrees) {
+    return degrees * (Math.PI / 180);
+  }
+
+  toDegrees(radians) {
+    return radians * (180 / Math.PI);
+  }
+
+  // Clean up animations
+  clearMarker(markerId) {
+    if (this.animationFrames.has(markerId)) {
+      cancelAnimationFrame(this.animationFrames.get(markerId));
+      this.animationFrames.delete(markerId);
+    }
+    
+    if (this.markers.has(markerId)) {
+      this.markers.get(markerId).setMap(null);
+      this.markers.delete(markerId);
+    }
+  }
+
+  clearPolyline(pathId) {
+    if (this.polylines.has(pathId)) {
+      this.polylines.get(pathId).setMap(null);
+      this.polylines.delete(pathId);
+    }
+  }
+}
+
+module.exports = MapAnimationService;
+```
+
+## examples/trip_states.js
+```javascript
+// Trip State Management Pattern
+class TripStateManager {
+  constructor() {
+    this.currentState = 'idle';
+    this.tripData = {};
+    this.listeners = {};
+    
+    // State machine definition
+    this.states = {
+      'idle': {
+        next: ['booking'],
+        actions: ['requestNearByCabs', 'selectLocation']
+      },
+      'booking': {
+        next: ['pickup', 'idle'],
+        actions: ['requestCab', 'cancelBooking']
+      },
+      'pickup': {
+        next: ['in_progress', 'idle'],
+        actions: ['trackDriver', 'cancelRide']
+      },
+      'in_progress': {
+        next: ['completed', 'idle'],
+        actions: ['trackTrip']
+      },
+      'completed': {
+        next: ['idle'],
+        actions: ['rateRide', 'takeNextRide']
+      }
+    };
+  }
+
+  // State transition with validation
+  transitionTo(newState, data = {}) {
+    const currentStateConfig = this.states[this.currentState];
+    
+    if (!currentStateConfig.next.includes(newState)) {
+      console.error(`Invalid transition from ${this.currentState} to ${newState}`);
+      return false;
+    }
+
+    const previousState = this.currentState;
+    this.currentState = newState;
+    this.tripData = { ...this.tripData, ...data };
+
+    // Trigger state change listeners
+    this.notifyStateChange(previousState, newState, this.tripData);
+    
+    // Execute state-specific logic
+    this.handleStateEntry(newState);
+    
+    return true;
+  }
+
+  // Handle actions when entering a state
+  handleStateEntry(state) {
+    switch(state) {
+      case 'idle':
+        this.handleIdleState();
+        break;
+      case 'booking':
+        this.handleBookingState();
+        break;
+      case 'pickup':
+        this.handlePickupState();
+        break;
+      case 'in_progress':
+        this.handleInProgressState();
+        break;
+      case 'completed':
+        this.handleCompletedState();
+        break;
+    }
+  }
+
+  handleIdleState() {
+    // Reset trip data
+    this.tripData = {};
+    
+    // Update UI to show initial state
+    this.updateUI({
+      showBookingForm: true,
+      showTripProgress: false,
+      showNearByCabs: true,
+      statusText: 'Where would you like to go?'
+    });
+  }
+
+  handleBookingState() {
+    this.updateUI({
+      showBookingForm: false,
+      showTripProgress: true,
+      statusText: 'Looking for a driver...',
+      showCancelButton: true
+    });
+  }
+
+  handlePickupState() {
+    this.updateUI({
+      statusText: 'Driver is on the way',
+      showPickupInfo: true,
+      showDriverLocation: true,
+      estimatedArrival: this.tripData.estimatedPickupTime
+    });
+  }
+
+  handleInProgressState() {
+    this.updateUI({
+      statusText: 'Trip in progress',
+      showTripProgress: true,
+      showDestination: true,
+      estimatedArrival: this.tripData.estimatedTripTime
+    });
+  }
+
+  handleCompletedState() {
+    this.updateUI({
+      statusText: 'Trip completed',
+      showRatingForm: true,
+      showTripSummary: true,
+      tripCost: this.tripData.fare
+    });
+  }
+
+  // WebSocket event handlers that trigger state changes
+  handleWebSocketEvent(eventType, data) {
+    switch(eventType) {
+      case 'cabBooked':
+        this.transitionTo('pickup', { 
+          driverId: data.driverId,
+          driverName: data.driverName,
+          estimatedPickupTime: data.estimatedPickupTime
+        });
+        break;
+        
+      case 'cabIsArriving':
+        this.updateTripData({ status: 'arriving' });
+        this.updateUI({ statusText: 'Driver is arriving' });
+        break;
+        
+      case 'cabArrived':
+        this.updateTripData({ status: 'arrived' });
+        this.updateUI({ statusText: 'Driver has arrived' });
+        break;
+        
+      case 'tripStart':
+        this.transitionTo('in_progress', { 
+          tripStartTime: new Date(),
+          status: 'started'
+        });
+        break;
+        
+      case 'tripEnd':
+        this.transitionTo('completed', { 
+          tripEndTime: new Date(),
+          fare: data.fare,
+          distance: data.distance,
+          duration: data.duration
+        });
+        break;
+    }
+  }
+
+  // UI update helper
+  updateUI(changes) {
+    if (this.listeners.onUIUpdate) {
+      this.listeners.onUIUpdate(changes);
+    }
+  }
+
+  updateTripData(data) {
+    this.tripData = { ...this.tripData, ...data };
+    if (this.listeners.onTripDataUpdate) {
+      this.listeners.onTripDataUpdate(this.tripData);
+    }
+  }
+
+  notifyStateChange(from, to, data) {
+    if (this.listeners.onStateChange) {
+      this.listeners.onStateChange(from, to, data);
+    }
+  }
+
+  // Public methods for UI actions
+  requestRide(pickupLocation, dropLocation) {
+    if (this.currentState === 'idle') {
+      this.transitionTo('booking', {
+        pickupLocation,
+        dropLocation,
+        requestTime: new Date()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  cancelRide() {
+    if (['booking', 'pickup'].includes(this.currentState)) {
+      this.transitionTo('idle');
+      return true;
+    }
+    return false;
+  }
+
+  takeNextRide() {
+    if (this.currentState === 'completed') {
+      this.transitionTo('idle');
+      return true;
+    }
+    return false;
+  }
+
+  // Getters
+  getCurrentState() {
+    return this.currentState;
+  }
+
+  getTripData() {
+    return { ...this.tripData };
+  }
+
+  canPerformAction(action) {
+    const currentStateConfig = this.states[this.currentState];
+    return currentStateConfig.actions.includes(action);
+  }
+
+  setListeners(listeners) {
+    this.listeners = listeners;
+  }
+}
+
+module.exports = TripStateManager;
+```
+
+## examples/location_tracking.js
+```javascript
+// Real-time Location Tracking Pattern
+class LocationTracker {
+  constructor(map, animationService) {
+    this.map = map;
+    this.animationService = animationService;
+    this.userLocation = null;
+    this.driverLocation = null;
+    this.watchId = null;
+    this.trackingInterval = null;
+  }
+
+  // Initialize location tracking
+  async startLocationTracking() {
+    if (!navigator.geolocation) {
+      throw new Error('Geolocation is not supported by this browser');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          this.userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          this.updateUserLocationOnMap();
+          resolve(this.userLocation);
+        },
+        (error) => {
+          console.error('Location error:', error);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
+        }
+      );
+    });
+  }
+
+  // Update user location marker on map
+  updateUserLocationOnMap() {
+    if (!this.userLocation) return;
+
+    const userMarker = this.animationService.markers.get('user');
+    
+    if (userMarker) {
+      // Animate to new position
+      this.animationService.animateCarMovement('user', this.userLocation);
+    } else {
+      // Create new user marker
+      const marker = new google.maps.Marker({
+        position: this.userLocation,
+        map: this.map,
+        icon: {
+          url: '/assets/user-location.png',
+          scaledSize: new google.maps.Size(20, 20),
+          anchor: new google.maps.Point(10, 10)
+        },
+        title: 'Your Location'
+      });
+      
+      this.animationService.markers.set('user', marker);
+    }
+
+    // Center map on user location (only first time)
+    if (!this.map.getBounds() || !this.map.getBounds().contains(this.userLocation)) {
+      this.map.setCenter(this.userLocation);
+      this.map.setZoom(15);
+    }
+  }
+
+  // Update driver location from WebSocket
+  updateDriverLocation(location) {
+    this.driverLocation = location;
+    
+    // Animate driver marker to new position
+    this.animationService.animateCarMovement('driver', location);
+    
+    // Update ETA if in pickup mode
+    if (this.userLocation && this.driverLocation) {
+      this.calculateAndUpdateETA();
+    }
+  }
+
+  // Calculate ETA between driver and user
+  async calculateAndUpdateETA() {
+    if (!this.driverLocation || !this.userLocation) return;
+
+    try {
+      const directionsService = new google.maps.DirectionsService();
+      
+      const result = await new Promise((resolve, reject) => {
+        directionsService.route({
+          origin: this.driverLocation,
+          destination: this.userLocation,
+          travelMode: google.maps.TravelMode.DRIVING,
+          unitSystem: google.maps.UnitSystem.METRIC
+        }, (response, status) => {
+          if (status === 'OK') {
+            resolve(response);
+          } else {
+            reject(new Error(`Directions failed: ${status}`));
+          }
+        });
+      });
+
+      const route = result.routes[0];
+      const leg = route.legs[0];
+      
+      // Update UI with ETA
+      this.updateETADisplay({
+        duration: leg.duration.text,
+        distance: leg.distance.text,
+        durationValue: leg.duration.value // seconds
+      });
+
+    } catch (error) {
+      console.error('ETA calculation failed:', error);
+    }
+  }
+
+  // Simulate driver movement along a path
+  simulateDriverMovement(path, onLocationUpdate) {
+    let currentIndex = 0;
+    const moveInterval = 2000; // Move every 2 seconds
+
+    this.trackingInterval = setInterval(() => {
+      if (currentIndex >= path.length) {
+        clearInterval(this.trackingInterval);
+        return;
+      }
+
+      const newLocation = path[currentIndex];
+      this.updateDriverLocation(newLocation);
+      
+      // Notify listeners about location update
+      if (onLocationUpdate) {
+        onLocationUpdate(newLocation);
+      }
+
+      currentIndex++;
+    }, moveInterval);
+  }
+
+  // Stop location tracking
+  stopLocationTracking() {
+    if (this.watchId) {
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId = null;
+    }
+
+    if (this.trackingInterval) {
+      clearInterval(this.trackingInterval);
+      this.trackingInterval = null;
+    }
+  }
+
+  // Update ETA display
+  updateETADisplay(etaData) {
+    // This would be called by the UI to update ETA information
+    console.log('ETA Update:', etaData);
+    
+    // Dispatch custom event for UI components to listen
+    window.dispatchEvent(new CustomEvent('eta-update', {
+      detail: etaData
+    }));
+  }
+
+  // Get current user location
+  getCurrentLocation() {
+    return this.userLocation;
+  }
+
+  // Get current driver location
+  getDriverLocation() {
+    return this.driverLocation;
+  }
+}
+
+module.exports = LocationTracker;
+```
+
+## examples/pickup_drop_ui.js
+```javascript
+// Location Selection UI with Google Places Autocomplete
+class LocationSelector {
+  constructor(mapService) {
+    this.mapService = mapService;
+    this.pickupAutocomplete = null;
+    this.dropAutocomplete = null;
+    this.pickupLocation = null;
+    this.dropLocation = null;
+    this.listeners = {};
+  }
+
+  // Initialize autocomplete inputs
+  initializeAutocomplete() {
+    // Pickup location autocomplete
+    const pickupInput = document.getElementById('pickup-input');
+    this.pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
+      componentRestrictions: { country: 'us' }, // Adjust as needed
+      fields: ['place_id', 'geometry', 'name', 'formatted_address']
+    });
+
+    this.pickupAutocomplete.addListener('place_changed', () => {
+      const place = this.pickupAutocomplete.getPlace();
+      if (place.geometry) {
+        this.pickupLocation = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+          address: place.formatted_address,
+          name: place.name
+        };
+        
+        this.updatePickupMarker();
+        this.notifyLocationChange();
+      }
+    });
+
+    // Drop location autocomplete
+    const dropInput = document.getElementById('drop-input');
+    this.dropAutocomplete = new google.maps.places.Autocomplete(dropInput, {
+      componentRestrictions: { country: 'us' },
+      fields: ['place_id', 'geometry', 'name', 'formatted_address']
+    });
+
+    this.dropAutocomplete.addListener('place_changed', () => {
+      const place = this.dropAutocomplete.getPlace();
+      if (place.geometry) {
+        this.dropLocation = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+          address: place.formatted_address,
+          name: place.name
+        };
+        
+        this.updateDropMarker();
+        this.notifyLocationChange();
+      }
+    });
+  }
+
+  // Update pickup marker on map
+  updatePickupMarker() {
+    if (!this.pickupLocation) return;
+
+    // Remove existing pickup marker
+    this.mapService.clearMarker('pickup');
+
+    // Add new pickup marker
+    const marker = new google.maps.Marker({
+      position: this.pickupLocation,
+      map: this.mapService.map,
+      icon: {
+        url: '/assets/pickup-icon.png',
+        scaledSize: new google.maps.Size(30, 30),
+        anchor: new google.maps.Point(15, 30)
+      },
+      title: 'Pickup Location',
+      animation: google.maps.Animation.DROP
+    });
+
+    this.mapService.markers.set('pickup', marker);
+    
+    // Add info window
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div><strong>Pickup</strong><br>${this.pickupLocation.address}</div>`
+    });
+
+    marker.addListener('click', () => {
+      infoWindow.open(this.mapService.map, marker);
+    });
+  }
+
+  // Update drop marker on map
+  updateDropMarker() {
+    if (!this.dropLocation) return;
+
+    // Remove existing drop marker
+    this.mapService.clearMarker('drop');
+
+    // Add new drop marker
+    const marker = new google.maps.Marker({
+      position: this.dropLocation,
+      map: this.mapService.map,
+      icon: {
+        url: '/assets/drop-icon.png',
+        scaledSize: new google.maps.Size(30, 30),
+        anchor: new google.maps.Point(15, 30)
+      },
+      title: 'Drop Location',
+      animation: google.maps.Animation.DROP
+    });
+
+    this.mapService.markers.set('drop', marker);
+
+    // Add info window
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div><strong>Destination</strong><br>${this.dropLocation.address}</div>`
+    });
+
+    marker.addListener('click', () => {
+      infoWindow.open(this.mapService.map, marker);
+    });
+
+    // Show route if both locations are set
+    if (this.pickupLocation && this.dropLocation) {
+      this.showRoute();
+    }
+  }
+
+  // Show route between pickup and drop
+  async showRoute() {
+    if (!this.pickupLocation || !this.dropLocation) return;
+
+    try {
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        suppressMarkers: true, // We have custom markers
+        polylineOptions: {
+          strokeColor: '#4285F4',
+          strokeWeight: 4,
+          strokeOpacity: 0.8
+        }
+      });
+
+      directionsRenderer.setMap(this.mapService.map);
+
+      const result = await new Promise((resolve, reject) => {
+        directionsService.route({
+          origin: this.pickupLocation,
+          destination: this.dropLocation,
+          travelMode: google.maps.TravelMode.DRIVING
+        }, (response, status) => {
+          if (status === 'OK') {
+            resolve(response);
+          } else {
+            reject(new Error(`Directions failed: ${status}`));
+          }
+        });
+      });
+
+      directionsRenderer.setDirections(result);
+
+      // Calculate and display trip info
+      const route = result.routes[0];
+      const leg = route.legs[0];
+      
+      this.displayTripInfo({
+        distance: leg.distance.text,
+        duration: leg.duration.text,
+        estimatedFare: this.calculateEstimatedFare(leg.distance.value, leg.duration.value)
+      });
+
+      // Fit map to show entire route
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(this.pickupLocation);
+      bounds.extend(this.dropLocation);
+      this.mapService.map.fitBounds(bounds, { padding: 50 });
+
+    } catch (error) {
+      console.error('Route calculation failed:', error);
+      this.showError('Unable to calculate route. Please try different locations.');
+    }
+  }
+
+  // Calculate estimated fare
+  calculateEstimatedFare(distanceMeters, durationSeconds) {
+    const baseFare = 2.50;
+    const perMile = 1.75;
+    const perMinute = 0.25;
+    
+    const miles = distanceMeters * 0.000621371; // Convert meters to miles
+    const minutes = durationSeconds / 60; // Convert seconds to minutes
+    
+    const fare = baseFare + (miles * perMile) + (minutes * perMinute);
+    return Math.round(fare * 100) / 100; // Round to 2 decimal places
+  }
+
+  // Display trip information
+  displayTripInfo(tripInfo) {
+    const tripInfoElement = document.getElementById('trip-info');
+    if (tripInfoElement) {
+      tripInfoElement.innerHTML = `
+        <div class="trip-details">
+          <div class="trip-detail">
+            <span class="label">Distance:</span>
+            <span class="value">${tripInfo.distance}</span>
+          </div>
+          <div class="trip-detail">
+            <span class="label">Duration:</span>
+            <span class="value">${tripInfo.duration}</span>
+          </div>
+          <div class="trip-detail">
+            <span class="label">Estimated Fare:</span>
+            <span class="value">${tripInfo.estimatedFare}</span>
+          </div>
+        </div>
+        <button id="book-ride-btn" class="btn-primary">Book Ride</button>
+      `;
+
+      // Add event listener for book ride button
+      document.getElementById('book-ride-btn').addEventListener('click', () => {
+        this.bookRide();
+      });
+    }
+  }
+
+  // Book ride function
+  bookRide() {
+    if (!this.pickupLocation || !this.dropLocation) {
+      this.showError('Please select both pickup and drop locations');
+      return;
+    }
+
+    if (this.listeners.onBookRide) {
+      this.listeners.onBookRide({
+        pickup: this.pickupLocation,
+        drop: this.dropLocation
+      });
+    }
+  }
+
+  // Use current location as pickup
+  useCurrentLocationAsPickup(currentLocation) {
+    this.pickupLocation = currentLocation;
+    
+    // Update input field
+    const pickupInput = document.getElementById('pickup-input');
+    pickupInput.value = 'Current Location';
+    
+    this.updatePickupMarker();
+    this.notifyLocationChange();
+  }
+
+  // Show error message
+  showError(message) {
+    const errorElement = document.getElementById('error-message');
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+      
+      // Hide after 5 seconds
+      setTimeout(() => {
+        errorElement.style.display = 'none';
+      }, 5000);
+    }
+  }
+
+  // Notify listeners about location changes
+  notifyLocationChange() {
+    if (this.listeners.onLocationChange) {
+      this.listeners.onLocationChange({
+        pickup: this.pickupLocation,
+        drop: this.dropLocation
+      });
+    }
+  }
+
+  // Clear all selections
+  clearSelections() {
+    this.pickupLocation = null;
+    this.dropLocation = null;
+    
+    document.getElementById('pickup-input').value = '';
+    document.getElementById('drop-input').value = '';
+    
+    this.mapService.clearMarker('pickup');
+    this.mapService.clearMarker('drop');
+    
+    // Clear trip info
+    const tripInfoElement = document.getElementById('trip-info');
+    if (tripInfoElement) {
+      tripInfoElement.innerHTML = '';
+    }
+  }
+
+  // Getters
+  getPickupLocation() {
+    return this.pickupLocation;
+  }
+
+  getDropLocation() {
+    return this.dropLocation;
+  }
+
+  // Set event listeners
+  setListeners(listeners) {
+    this.listeners = listeners;
+  }
+}
+
+module.exports = LocationSelector;
+```
+
+## examples/complete_app_integration.js
+```javascript
+// Complete App Integration Example
+class RideSharingApp {
+  constructor() {
+    this.map = null;
+    this.webSocket = null;
+    this.animationService = null;
+    this.locationTracker = null;
+    this.locationSelector = null;
+    this.stateManager = null;
+    
+    this.isInitialized = false;
+  }
+
+  // Initialize the complete app
+  async initialize() {
+    try {
+      // Initialize Google Maps
+      await this.initializeMap();
+      
+      // Initialize services
+      this.animationService = new MapAnimationService(this.map);
+      this.locationTracker = new LocationTracker(this.map, this.animationService);
+      this.locationSelector = new LocationSelector(this.animationService);
+      this.stateManager = new TripStateManager();
+      
+      // Initialize WebSocket
+      this.webSocket = new RideWebSocket('ws://localhost:8080/ride');
+      
+      // Set up event listeners
+      this.setupEventListeners();
+      
+      // Connect to WebSocket
+      await this.webSocket.connect();
+      
+      // Start location tracking
+      await this.locationTracker.startLocationTracking();
+      
+      // Initialize location selector
+      this.locationSelector.initializeAutocomplete();
+      
+      // Request nearby cabs
+      const userLocation = this.locationTracker.getCurrentLocation();
+      if (userLocation) {
+        this.webSocket.requestNearByCabs(userLocation.lat, userLocation.lng);
+      }
+      
+      this.isInitialized = true;
+      console.log('RideSharing App initialized successfully');
+      
+    } catch (error) {
+      console.error('Failed to initialize app:', error);
+      this.showError('Failed to initialize the app. Please refresh and try again.');
+    }
+  }
+
+  // Initialize Google Maps
+  async initializeMap() {
+    this.map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 15,
+      center: { lat: 37.7749, lng: -122.4194 }, // Default to San Francisco
+      styles: [
+        // Custom map styling for modern look
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        }
+      ],
+      disableDefaultUI: true,
+      zoomControl: true,
+      mapTypeControl: false,
+      scaleControl: false,
+      streetViewControl: false,
+      rotateControl: false,
+      fullscreenControl: false
+    });
+  }
+
+  // Set up all event listeners
+  setupEventListeners() {
+    // WebSocket event listeners
+    this.webSocket.setListeners({
+      onConnect: () => this.handleWebSocketConnect(),
+      onDisconnect: () => this.handleWebSocketDisconnect(),
+      onError: (error) => this.handleWebSocketError(error),
+      onNearByCabs: (cabs) => this.handleNearByCabs(cabs),
+      onCabBooked: () => this.handleCabBooked(),
+      onPickUpPath: (path) => this.handlePickUpPath(path),
+      onDriverLocation: (location) => this.handleDriverLocation(location),
+      onCabArriving: () => this.handleCabArriving(),
+      onCabArrived: () => this.handleCabArrived(),
+      onTripStart: () => this.handleTripStart(),
+      onTripPath: (path) => this.handleTripPath(path),
+      onTripEnd: () => this.handleTripEnd()
+    });
+
+    // State manager listeners
+    this.stateManager.setListeners({
+      onStateChange: (from, to, data) => this.handleStateChange(from, to, data),
+      onUIUpdate: (changes) => this.updateUI(changes),
+      onTripDataUpdate: (data) => this.handleTripDataUpdate(data)
+    });
+
+    // Location selector listeners
+    this.locationSelector.setListeners({
+      onLocationChange: (locations) => this.handleLocationChange(locations),
+      onBookRide: (rideData) => this.handleBookRide(rideData)
+    });
+
+    // UI event listeners
+    this.setupUIEventListeners();
+  }
+
+  // Set up UI event listeners
+  setupUIEventListeners() {
+    // Use current location button
+    const currentLocationBtn = document.getElementById('current-location-btn');
+    if (currentLocationBtn) {
+      currentLocationBtn.addEventListener('click', () => {
+        const currentLocation = this.locationTracker.getCurrentLocation();
+        if (currentLocation) {
+          this.locationSelector.useCurrentLocationAsPickup(currentLocation);
+        }
+      });
+    }
+
+    // Cancel ride button
+    const cancelRideBtn = document.getElementById('cancel-ride-btn');
+    if (cancelRideBtn) {
+      cancelRideBtn.addEventListener('click', () => {
+        this.stateManager.cancelRide();
+      });
+    }
+
+    // Take next ride button
+    const nextRideBtn = document.getElementById('next-ride-btn');
+    if (nextRideBtn) {
+      nextRideBtn.addEventListener('click', () => {
+        this.stateManager.takeNextRide();
+        this.locationSelector.clearSelections();
+      });
+    }
+  }
+
+  // WebSocket event handlers
+  handleWebSocketConnect() {
+    console.log('Connected to ride service');
+    this.updateConnectionStatus(true);
+  }
+
+  handleWebSocketDisconnect() {
+    console.log('Disconnected from ride service');
+    this.updateConnectionStatus(false);
+  }
+
+  handleWebSocketError(error) {
+    console.error('WebSocket error:', error);
+    this.showError('Connection error. Please check your internet connection.');
+  }
+
+  handleNearByCabs(cabs) {
+    // Update nearby cabs on map with animation
+    this.animationService.updateNearByCabs(cabs);
+  }
+
+  handleCabBooked() {
+    // Trigger state transition to pickup
+    this.stateManager.handleWebSocketEvent('cabBooked', {});
+  }
+
+  handlePickUpPath(path) {
+    // Animate pickup path on map
+    this.animationService.animatePathDrawing('pickup-path', path, '#FF6B35');
+    
+    // Start simulating driver movement along pickup path
+    this.locationTracker.simulateDriverMovement(path, (location) => {
+      // This will be called as driver moves along path
+    });
+  }
+
+  handleDriverLocation(location) {
+    // Update driver location with animation
+    this.locationTracker.updateDriverLocation(location);
+  }
+
+  handleCabArriving() {
+    this.stateManager.handleWebSocketEvent('cabIsArriving', {});
+  }
+
+  handleCabArrived() {
+    this.stateManager.handleWebSocketEvent('cabArrived', {});
+  }
+
+  handleTripStart() {
+    // Clear pickup path and start trip
+    this.animationService.clearPolyline('pickup-path');
+    this.stateManager.handleWebSocketEvent('tripStart', {});
+  }
+
+  handleTripPath(path) {
+    // Animate trip path on map
+    this.animationService.animatePathDrawing('trip-path', path, '#4285F4');
+    
+    // Continue driver location simulation along trip path
+    this.locationTracker.simulateDriverMovement(path, (location) => {
+      // Update UI with current trip progress
+    });
+  }
+
+  handleTripEnd() {
+    this.stateManager.handleWebSocketEvent('tripEnd', {
+      fare: 15.50, // This would come from server
+      distance: '5.2 miles',
+      duration: '18 minutes'
+    });
+  }
+
+  // State management handlers
+  handleStateChange(from, to, data) {
+    console.log(`State changed from ${from} to ${to}`, data);
+    this.updateUIForState(to);
+  }
+
+  handleTripDataUpdate(data) {
+    console.log('Trip data updated:', data);
+  }
+
+  // Location and booking handlers
+  handleLocationChange(locations) {
+    // Update map bounds if both locations are set
+    if (locations.pickup && locations.drop) {
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(locations.pickup);
+      bounds.extend(locations.drop);
+      this.map.fitBounds(bounds, { padding: 100 });
+    }
+  }
+
+  handleBookRide(rideData) {
+    // Request cab through WebSocket
+    const pickup = rideData.pickup;
+    const drop = rideData.drop;
+    
+    this.webSocket.requestCab(pickup.lat, pickup.lng, drop.lat, drop.lng);
+    
+    // Update state to booking
+    this.stateManager.requestRide(pickup, drop);
+  }
+
+  // UI update methods
+  updateUI(changes) {
+    // Update various UI elements based on state changes
+    Object.keys(changes).forEach(key => {
+      const element = document.getElementById(key.replace(/([A-Z])/g, '-$1').toLowerCase());
+      if (element) {
+        if (typeof changes[key] === 'boolean') {
+          element.style.display = changes[key] ? 'block' : 'none';
+        } else {
+          element.textContent = changes[key];
+        }
+      }
+    });
+  }
+
+  updateUIForState(state) {
+    // Hide all state-specific UI elements first
+    document.querySelectorAll('[data-state]').forEach(el => {
+      el.style.display = 'none';
+    });
+
+    // Show elements for current state
+    document.querySelectorAll(`[data-state="${state}"]`).forEach(el => {
+      el.style.display = 'block';
+    });
+  }
+
+  updateConnectionStatus(connected) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+      statusElement.className = connected ? 'connected' : 'disconnected';
+      statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+    }
+  }
+
+  showError(message) {
+    const errorElement = document.getElementById('error-toast');
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.classList.add('show');
+      
+      setTimeout(() => {
+        errorElement.classList.remove('show');
+      }, 5000);
+    }
+  }
+
+  // Public API methods
+  getCurrentState() {
+    return this.stateManager ? this.stateManager.getCurrentState() : 'uninitialized';
+  }
+
+  isReady() {
+    return this.isInitialized;
+  }
+
+  // Cleanup method
+  destroy() {
+    if (this.webSocket) {
+      this.webSocket.disconnect();
+    }
+    
+    if (this.locationTracker) {
+      this.locationTracker.stopLocationTracking();
+    }
+    
+    // Clear all markers and polylines
+    if (this.animationService) {
+      this.animationService.markers.forEach((marker, id) => {
+        this.animationService.clearMarker(id);
+      });
+      
+      this.animationService.polylines.forEach((polyline, id) => {
+        this.animationService.clearPolyline(id);
+      });
+    }
+  }
+}
+
+// Initialize app when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  window.rideSharingApp = new RideSharingApp();
+  
+  // Initialize when Google Maps is loaded
+  window.initMap = () => {
+    window.rideSharingApp.initialize();
+  };
+});
+
+module.exports = RideSharingApp;
+```
+
+These examples provide comprehensive patterns for building an advanced ridesharing app exactly like the Android repo you referenced, with all the sophisticated features including smooth animations, real-time WebSocket communication, and proper state management.
