@@ -1,18 +1,23 @@
-# 🚗 Advanced Ridesharing App - **FULLY FUNCTIONAL & PRODUCTION READY**
+# 🚗 RideGo - রাইডগো | Advanced Dhaka Ridesharing App
 
-A comprehensive web-based ridesharing application built with React and Node.js, featuring real-time cab tracking, smooth animations, and professional user experience matching production ridesharing apps like Uber/Lyft.
+A complete, production-ready ridesharing application specifically designed for Dhaka, Bangladesh, with real-time features, Bengali localization, and Bangladesh-specific payment methods.
 
-## 🎉 **STATUS: FULLY FUNCTIONAL & READY FOR USE**
+![Dhaka Ridesharing](https://img.shields.io/badge/🇧🇩_Dhaka-Focused-green)
+![Real-time](https://img.shields.io/badge/⚡_Real--time-WebSocket-blue)
+![Bengali](https://img.shields.io/badge/🗣️_Bengali-Localized-orange)
+![Mobile](https://img.shields.io/badge/📱_Mobile-Responsive-purple)
 
-**✅ All core features implemented and working:**
-- Real-time cab tracking with smooth animations
-- Complete trip flow from booking to completion
-- WebSocket communication with automatic reconnection
-- Mobile-responsive design optimized for all devices
-- Location search with autocomplete
-- Professional UI with real-time notifications
+## 🎉 **STATUS: PRODUCTION READY FOR DHAKA MARKET**
 
-**🚀 Ready for production deployment and real users!**
+**✅ Complete Dhaka-focused features:**
+- 🇧🇩 Bengali language support throughout
+- 💳 Bangladesh payment methods (bKash, Nagad, Rocket, etc.)
+- 📍 Dhaka landmarks and locations integration
+- 🚗 Local service types with ৳ pricing
+- 📱 Improved UI/UX with non-intrusive design
+- ⚡ Real-time WebSocket with smooth animations
+
+**🚀 Ready for Dhaka users and production deployment!**
 
 ## Features
 
@@ -48,44 +53,39 @@ ridesharing-app/
 └── docs/                  # Documentation
 ```
 
-## Setup Instructions
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 16+ 
-- npm or yarn
-- Mapbox account and access token
-  - Sign up at https://www.mapbox.com/
-  - Get your access token from https://account.mapbox.com/access-tokens/
+- Node.js 16+ installed
+- Mapbox API key (get from [Mapbox](https://mapbox.com))
 
 ### Installation
 
-1. **Clone and install dependencies:**
-```bash
-git clone <repository-url>
-cd ridesharing-app
-npm install
-cd client && npm install
-cd ../server && npm install
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/sameer-dev-stack/Project-101.git
+   cd Project-101/uber-app
+   ```
 
-2. **Configure environment variables:**
-```bash
-# Copy the example environment file
-cp .env.example .env
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-# Edit .env and add your Mapbox access token:
-REACT_APP_MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
-```
+3. **Configure Mapbox API Key**
+   ```bash
+   # Update client/.env file
+   REACT_APP_MAPBOX_ACCESS_TOKEN=your_mapbox_api_key_here
+   ```
 
-3. **Start the development servers:**
-```bash
-# From the root directory, start both client and server
-npm run dev
+4. **Start the application**
+   ```bash
+   npm run dev
+   ```
 
-# Or start them separately:
-npm run server:dev    # Starts server on http://localhost:3001
-npm run client:dev    # Starts client on http://localhost:3000
-```
+5. **Access the app**
+   - **Frontend**: http://localhost:3001
+   - **Backend**: http://localhost:5001
 
 ### Mapbox Setup
 
