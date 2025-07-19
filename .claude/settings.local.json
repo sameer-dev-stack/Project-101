@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(npm run dev:*)",
+      "Bash(cross-env:*)",
+      "Bash(npm run start:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }
