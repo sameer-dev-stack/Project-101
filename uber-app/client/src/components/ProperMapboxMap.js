@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN } from '../config/api';
@@ -84,13 +84,13 @@ const ProperMapboxMap = ({
   }, []);
 
   // Clear all markers
-  const clearMarkers = () => {
+  const clearMarkers = useCallback(() => {
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
-  };
+  }, []);
 
   // Add marker helper
-  const addMarker = (lngLat, color, emoji, text) => {
+  const addMarker = useCallback((lngLat, color, emoji, text) => {
     if (!map.current || !mapLoaded) return;
 
     const el = document.createElement('div');
@@ -105,7 +105,7 @@ const ProperMapboxMap = ({
 
     markersRef.current.push(marker);
     return marker;
-  };
+  }, [mapLoaded]);
 
   // Update user location
   useEffect(() => {
@@ -122,7 +122,7 @@ const ProperMapboxMap = ({
       zoom: 14,
       duration: 1000
     });
-  }, [mapLoaded, userLocation]);
+  }, [mapLoaded, userLocation, clearMarkers, addMarker]);
 
   // Update nearby cabs
   useEffect(() => {
@@ -140,14 +140,14 @@ const ProperMapboxMap = ({
     nearbyCabs.forEach((cab, index) => {
       addMarker([cab.lng, cab.lat], '#28a745', '🚗', `Available Cab ${index + 1}`);
     });
-  }, [mapLoaded, nearbyCabs, userLocation]);
+  }, [mapLoaded, nearbyCabs, userLocation, clearMarkers, addMarker]);
 
   // Update pickup location
   useEffect(() => {
     if (!mapLoaded || !pickupLocation) return;
     
     addMarker([pickupLocation.lng, pickupLocation.lat], '#ffc107', '🟡', 'Pickup Location');
-  }, [mapLoaded, pickupLocation]);
+  }, [mapLoaded, pickupLocation, addMarker]);
 
   // Update drop location
   useEffect(() => {
@@ -166,14 +166,14 @@ const ProperMapboxMap = ({
         duration: 1000
       });
     }
-  }, [mapLoaded, dropLocation, pickupLocation]);
+  }, [mapLoaded, dropLocation, pickupLocation, addMarker]);
 
   // Update driver location
   useEffect(() => {
     if (!mapLoaded || !driverLocation) return;
     
     addMarker([driverLocation.lng, driverLocation.lat], '#6f42c1', '🚕', 'Your Driver');
-  }, [mapLoaded, driverLocation]);
+  }, [mapLoaded, driverLocation, addMarker]);
 
   // Update route
   useEffect(() => {

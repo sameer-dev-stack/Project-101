@@ -61,6 +61,18 @@ const RidesharingPage = () => {
     }
   }, []);
 
+  // Notification management
+  const addNotification = useCallback((type, title, message) => {
+    const id = Date.now();
+    const notification = { id, type, title, message };
+    
+    setNotifications(prev => [...prev, notification]);
+    
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  }, []);
+
   // Create stable callback references
   const handleNearbyCabs = useCallback((data) => {
     if (data.locations && Array.isArray(data.locations)) {
@@ -173,18 +185,6 @@ const RidesharingPage = () => {
     const interval = setInterval(requestNearbyCabs, 5000);
     return () => clearInterval(interval);
   }, [socket, isConnected, userLocation, tripState, sendMessage]);
-
-  // Notification management
-  const addNotification = useCallback((type, title, message) => {
-    const id = Date.now();
-    const notification = { id, type, title, message };
-    
-    setNotifications(prev => [...prev, notification]);
-    
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
-  }, []);
 
   // Handle cab booking
   const handleBookCab = useCallback((selectedPayment) => {
