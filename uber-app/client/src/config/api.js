@@ -1,7 +1,7 @@
 // API Configuration
 const config = {
   // Base API URL - will use environment variable in production
-  API_BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5001',
+  API_BASE_URL: (process.env.REACT_APP_API_URL || 'http://localhost:5001').replace(/\/$/, ''),
   
   // WebSocket URL - will use environment variable in production  
   WS_BASE_URL: process.env.REACT_APP_WS_URL || 'ws://localhost:5001',
