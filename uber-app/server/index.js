@@ -16,7 +16,9 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:3000', 'http://localhost:3001'],
+    origin: process.env.NODE_ENV === 'production' 
+      ? [process.env.CORS_ORIGIN || 'https://ridesharing-101.netlify.app'] 
+      : ['http://localhost:3000', 'http://localhost:3001'],
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -28,7 +30,9 @@ const PORT = process.env.PORT || 5001;
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:3000', 'http://localhost:3001'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.CORS_ORIGIN || 'https://ridesharing-101.netlify.app'] 
+    : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
 

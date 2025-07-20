@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ridesharing-backend
+    env: node
+    plan: free
+    buildCommand: cd uber-app/server && npm install
+    startCommand: cd uber-app/server && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://ridesharing-101.netlify.app
+    autoDeploy: false
