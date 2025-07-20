@@ -1,6 +1,6 @@
 [build]
-  base = "client"
-  publish = "client/build"
+  base = "uber-app/client"
+  publish = "uber-app/client/build"
   command = "npm run build"
 
 [build.environment]
