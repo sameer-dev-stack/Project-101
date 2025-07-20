@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { LanguageToggle } from '../ui/LanguageToggle';
-import { useTranslation } from '@/hooks/use-translation';
+import { useTranslation } from '@/hooks/useTranslation.js';
 
 export default function LoginForm() {
   const { login } = useAuth();
@@ -70,15 +70,15 @@ export default function LoginForm() {
         <LanguageToggle />
       </div>
       <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">{t('welcome')}</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('auth.welcome')}</CardTitle>
         <CardDescription>
-          {t('login_prompt')}
+          {t('auth.login_prompt')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleLogin)} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">{t('email')}</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
               type="email"
@@ -91,9 +91,9 @@ export default function LoginForm() {
 
           <div className="grid gap-2">
             <div className="flex items-center">
-              <Label htmlFor="password">{t('password')}</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Link href="#" className="ml-auto inline-block text-sm text-primary underline">
-                {t('forgot_password')}
+                {t('auth.forgot_password')}
               </Link>
             </div>
              <div className="relative">
@@ -107,7 +107,7 @@ export default function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-3 flex items-center text-muted-foreground"
-                aria-label={showPassword ? t('hide_password') : t('show_password')}
+                aria-label={showPassword ? t('auth.hide_password') : t('auth.show_password')}
               >
                 {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
               </button>
@@ -119,20 +119,20 @@ export default function LoginForm() {
              {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('signing_in')}
+                {t('auth.signing_in')}
               </>
             ) : (
-              t('sign_in')
+              t('auth.sign_in')
             )}
           </Button>
           <Button variant="outline" className="w-full" type="button">
-            {t('login_with_google')}
+            {t('auth.login_with_google')}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
-          {t('no_account')}{' '}
+          {t('auth.no_account')}{' '}
           <Link href="/signup" className="underline text-primary">
-            {t('sign_up')}
+            {t('auth.sign_up')}
           </Link>
         </div>
       </CardContent>

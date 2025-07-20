@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/use-auth.tsx';
-import { LanguageProvider } from '@/contexts/LanguageContext';
+import { LanguageProvider } from '@/contexts/LanguageContext.js';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 

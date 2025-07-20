@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { LanguageToggle } from "./ui/LanguageToggle";
-import { useTranslation } from "@/hooks/use-translation";
+import { useTranslation } from "@/hooks/useTranslation.js";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -15,13 +15,13 @@ export function BottomNav() {
   const { t } = useTranslation();
 
   const navItems = [
-    { icon: <Home className="size-6" />, label: t("home"), href: "/dashboard" },
-    { icon: <LayoutGrid className="size-6" />, label: t("services"), href: "/services" },
-    { icon: <List className="size-6" />, label: t("activity"), href: "/activity" },
-    { icon: <User className="size-6" />, label: t("account"), href: "/account" },
+    { icon: <Home className="size-6" />, label: t("nav.home"), href: "/dashboard" },
+    { icon: <LayoutGrid className="size-6" />, label: t("nav.services"), href: "/services" },
+    { icon: <List className="size-6" />, label: t("nav.activity"), href: "/activity" },
+    { icon: <User className="size-6" />, label: t("nav.account"), href: "/account" },
   ];
   
-  const adminNavItem = { icon: <Shield className="size-6" />, label: t("admin"), href: "/admin" };
+  const adminNavItem = { icon: <Shield className="size-6" />, label: t("nav.admin"), href: "/admin" };
 
 
   return (
