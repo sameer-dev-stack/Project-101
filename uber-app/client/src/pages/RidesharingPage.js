@@ -11,7 +11,7 @@ import { useTripState } from '../hooks/useTripState';
 
 const RidesharingPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  useAuth(); // Ensure we're authenticated
   const [userLocation, setUserLocation] = useState(null);
   const [pickupLocation, setPickupLocation] = useState(null);
   const [dropLocation, setDropLocation] = useState(null);
