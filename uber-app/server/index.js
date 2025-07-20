@@ -16,9 +16,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? [process.env.CORS_ORIGIN || 'https://ridesharing-101.netlify.app'] 
-      : ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['https://ridesharing-101.netlify.app', 'http://localhost:3000', 'http://localhost:3001'],
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -29,12 +27,35 @@ const PORT = process.env.PORT || 5001;
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.CORS_ORIGIN || 'https://ridesharing-101.netlify.app'] 
-    : ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
-}));
+
+// CORS configuration with debugging
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? ['https://ridesharing-101.netlify.app', process.env.CORS_ORIGIN].filter(Boolean)
+      : ['http://localhost:3000', 'http://localhost:3001'];
+    
+    console.log('CORS check - Origin:', origin);
+    console.log('CORS check - Allowed origins:', allowedOrigins);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('CORS_ORIGIN env var:', process.env.CORS_ORIGIN);
+    
+    // Allow requests with no origin (mobile apps, postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
