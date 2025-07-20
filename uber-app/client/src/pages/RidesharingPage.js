@@ -61,70 +61,71 @@ const RidesharingPage = () => {
     }
   }, []);
 
+  // Create stable callback references
+  const handleNearbyCabs = useCallback((data) => {
+    if (data.locations && Array.isArray(data.locations)) {
+      setNearbyCabs(data.locations);
+    }
+  }, []);
+
+  const handleCabBooked = useCallback(() => {
+    updateTripState('pickup');
+    addNotification('success', 'Cab Booked', 'Your cab has been booked successfully!');
+  }, [updateTripState, addNotification]);
+
+  const handlePickupPath = useCallback((data) => {
+    if (data.path && Array.isArray(data.path)) {
+      setCurrentPath({
+        type: 'pickup',
+        path: data.path,
+        color: '#FF6B35'
+      });
+    }
+  }, []);
+
+  const handleLocationUpdate = useCallback((data) => {
+    if (data.lat && data.lng) {
+      setDriverLocation({
+        lat: data.lat,
+        lng: data.lng
+      });
+    }
+  }, []);
+
+  const handleCabIsArriving = useCallback(() => {
+    addNotification('warning', 'Driver Update', 'Your driver is arriving!');
+  }, [addNotification]);
+
+  const handleCabArrived = useCallback(() => {
+    addNotification('success', 'Driver Update', 'Your driver has arrived!');
+  }, [addNotification]);
+
+  const handleTripStart = useCallback(() => {
+    updateTripState('in_progress');
+    addNotification('success', 'Trip Started', 'Your trip has started!');
+    setCurrentPath(null);
+  }, [updateTripState, addNotification]);
+
+  const handleTripPath = useCallback((data) => {
+    if (data.path && Array.isArray(data.path)) {
+      setCurrentPath({
+        type: 'trip',
+        path: data.path,
+        color: '#4285F4'
+      });
+    }
+  }, []);
+
+  const handleTripEnd = useCallback(() => {
+    updateTripState('completed');
+    addNotification('success', 'Trip Complete', 'Trip completed successfully!');
+    setCurrentPath(null);
+    setDriverLocation(null);
+  }, [updateTripState, addNotification]);
+
   // WebSocket event handlers
   useEffect(() => {
     if (!socket) return;
-
-    const handleNearbyCabs = (data) => {
-      if (data.locations && Array.isArray(data.locations)) {
-        setNearbyCabs(data.locations);
-      }
-    };
-
-    const handleCabBooked = () => {
-      updateTripState('pickup');
-      addNotification('success', 'Cab Booked', 'Your cab has been booked successfully!');
-    };
-
-    const handlePickupPath = (data) => {
-      if (data.path && Array.isArray(data.path)) {
-        setCurrentPath({
-          type: 'pickup',
-          path: data.path,
-          color: '#FF6B35'
-        });
-      }
-    };
-
-    const handleLocationUpdate = (data) => {
-      if (data.lat && data.lng) {
-        setDriverLocation({
-          lat: data.lat,
-          lng: data.lng
-        });
-      }
-    };
-
-    const handleCabIsArriving = () => {
-      addNotification('warning', 'Driver Update', 'Your driver is arriving!');
-    };
-
-    const handleCabArrived = () => {
-      addNotification('success', 'Driver Update', 'Your driver has arrived!');
-    };
-
-    const handleTripStart = () => {
-      updateTripState('in_progress');
-      addNotification('success', 'Trip Started', 'Your trip has started!');
-      setCurrentPath(null);
-    };
-
-    const handleTripPath = (data) => {
-      if (data.path && Array.isArray(data.path)) {
-        setCurrentPath({
-          type: 'trip',
-          path: data.path,
-          color: '#4285F4'
-        });
-      }
-    };
-
-    const handleTripEnd = () => {
-      updateTripState('completed');
-      addNotification('success', 'Trip Complete', 'Trip completed successfully!');
-      setCurrentPath(null);
-      setDriverLocation(null);
-    };
 
     // Register event listeners
     socket.on('nearByCabs', handleNearbyCabs);
@@ -149,7 +150,7 @@ const RidesharingPage = () => {
       socket.off('tripPath', handleTripPath);
       socket.off('tripEnd', handleTripEnd);
     };
-  }, [socket, updateTripState]);
+  }, [socket, handleNearbyCabs, handleCabBooked, handlePickupPath, handleLocationUpdate, handleCabIsArriving, handleCabArrived, handleTripStart, handleTripPath, handleTripEnd]);
 
   // Request nearby cabs
   useEffect(() => {

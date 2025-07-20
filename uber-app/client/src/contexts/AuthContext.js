@@ -19,6 +19,17 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing token on mount
   useEffect(() => {
+    const verifyToken = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}${endpoints.auth.verify}`);
+        setUser(response.data.user);
+      } catch (error) {
+        console.error('Token verification failed:', error);
+        logout();
+      }
+      setLoading(false);
+    };
+
     const token = localStorage.getItem('token');
     if (token) {
       // Set default authorization header
@@ -30,16 +41,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const verifyToken = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}${endpoints.auth.verify}`);
-      setUser(response.data.user);
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      logout();
-    }
-    setLoading(false);
-  };
 
   const login = async (email, password) => {
     try {

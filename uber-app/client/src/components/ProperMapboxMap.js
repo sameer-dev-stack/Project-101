@@ -80,6 +80,7 @@ const ProperMapboxMap = ({
       console.error('Failed to initialize Mapbox:', error);
       setMapError(error.message);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Clear all markers
