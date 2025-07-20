@@ -14,12 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { LanguageToggle } from '../ui/LanguageToggle';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
   const {
     register,
@@ -63,16 +66,19 @@ export default function LoginForm() {
 
   return (
     <Card className="w-full max-w-md mx-auto border-none shadow-none md:border md:shadow-lg">
+      <div className="flex justify-end p-2">
+        <LanguageToggle />
+      </div>
       <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Welcome to VelocityGo</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('welcome')}</CardTitle>
         <CardDescription>
-          Enter your email below to login to your account.
+          {t('login_prompt')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleLogin)} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               type="email"
@@ -85,9 +91,9 @@ export default function LoginForm() {
 
           <div className="grid gap-2">
             <div className="flex items-center">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Link href="#" className="ml-auto inline-block text-sm text-primary underline">
-                Forgot your password?
+                {t('forgot_password')}
               </Link>
             </div>
              <div className="relative">
@@ -101,7 +107,7 @@ export default function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-3 flex items-center text-muted-foreground"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t('hide_password') : t('show_password')}
               >
                 {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
               </button>
@@ -113,20 +119,20 @@ export default function LoginForm() {
              {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing In...
+                {t('signing_in')}
               </>
             ) : (
-              'Sign In'
+              t('sign_in')
             )}
           </Button>
           <Button variant="outline" className="w-full" type="button">
-            Login with Google
+            {t('login_with_google')}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{' '}
+          {t('no_account')}{' '}
           <Link href="/signup" className="underline text-primary">
-            Sign up
+            {t('sign_up')}
           </Link>
         </div>
       </CardContent>

@@ -6,19 +6,22 @@ import { Home, LayoutGrid, List, User, Shield } from "lucide-react";
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { LanguageToggle } from "./ui/LanguageToggle";
+import { useTranslation } from "@/hooks/use-translation";
 
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const navItems = [
-    { icon: <Home className="size-6" />, label: "Home", href: "/dashboard" },
-    { icon: <LayoutGrid className="size-6" />, label: "Services", href: "/services" },
-    { icon: <List className="size-6" />, label: "Activity", href: "/activity" },
-    { icon: <User className="size-6" />, label: "Account", href: "/account" },
+    { icon: <Home className="size-6" />, label: t("home"), href: "/dashboard" },
+    { icon: <LayoutGrid className="size-6" />, label: t("services"), href: "/services" },
+    { icon: <List className="size-6" />, label: t("activity"), href: "/activity" },
+    { icon: <User className="size-6" />, label: t("account"), href: "/account" },
   ];
   
-  const adminNavItem = { icon: <Shield className="size-6" />, label: "Admin", href: "/admin" };
+  const adminNavItem = { icon: <Shield className="size-6" />, label: t("admin"), href: "/admin" };
 
 
   return (
@@ -50,6 +53,7 @@ export function BottomNav() {
             <span className="text-xs font-medium">{adminNavItem.label}</span>
           </Link>
         )}
+        <LanguageToggle />
       </div>
     </nav>
   );
