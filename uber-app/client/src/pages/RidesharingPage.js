@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
+import { WS_BASE_URL } from '../config/api';
 import ProperMapboxMap from '../components/ProperMapboxMap';
 import DhakaLocationSearch from '../components/DhakaLocationSearch';
 import TripStatus from '../components/TripStatus';
@@ -27,7 +28,7 @@ const RidesharingPage = () => {
     isConnected, 
     connectionStatus, 
     sendMessage 
-  } = useWebSocket(`ws://localhost:5001?token=${token}`);
+  } = useWebSocket(`${WS_BASE_URL}?token=${token}`);
 
   // Trip state management
   const {

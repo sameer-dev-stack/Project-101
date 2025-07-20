@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { MAPBOX_TOKEN } from '../config/api';
 
-// Set your Mapbox access token
-mapboxgl.accessToken = 'pk.eyJ1IjoibXpwbGF5eiIsImEiOiJjbWNwdjF5cXAwYnBqMmxzYnN4ZTZkOTVtIn0.n_yE9wLiU49DZgSeOv_Ngg';
+// Set Mapbox access token from environment variable
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const ProperMapboxMap = ({ 
   userLocation, 
